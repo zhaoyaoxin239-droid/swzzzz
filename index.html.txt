@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Switch 游戏选购系统</title>
+    <style>
+        /* 这里的样式完全适配国内手机主流浏览器 */
+        body { font-family: "PingFang SC", "Helvetica Neue", Helvetica, Arial, sans-serif; margin: 0; background: #f8f8f8; color: #333; padding-bottom: 80px; }
+        .header { background: #07c160; color: white; text-align: center; padding: 15px; font-weight: 500; font-size: 16px; }
+        .stat-card { background: white; margin: 0; border-bottom: 1px solid #eee; width: 100%; border-collapse: collapse; }
+        .stat-card td { border: 0.5px solid #f0f0f0; padding: 12px; font-size: 14px; }
+        .label-red { color: #fa5151; font-weight: bold; }
+        .label-green { color: #07c160; font-weight: bold; }
+        .section-header { padding: 12px 15px; color: #888; font-size: 13px; background: #f2f2f2; }
+        .item-list { background: white; }
+        .item { display: flex; align-items: center; padding: 12px 15px; border-bottom: 1px solid #f5f5f5; }
+        .item input[type="checkbox"], .item input[type="radio"] { width: 20px; height: 20px; margin-right: 12px; accent-color: #07c160; }
+        .footer-bar { position: fixed; bottom: 0; width: 100%; background: white; display: flex; padding: 10px; box-shadow: 0 -1px 5px rgba(0,0,0,0.05); box-sizing: border-box; }
+        .btn { flex: 1; padding: 12px; border: none; border-radius: 4px; font-size: 15px; font-weight: bold; margin: 0 5px; cursor: pointer; }
+        .btn-primary { background: #07c160; color: white; }
+        .btn-secondary { background: #ededed; color: #07c160; }
+        #modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:1000; }
+        .modal-inner { background:white; width:80%; margin:30% auto; padding:20px; border-radius:8px; }
+        .input-text { width: 100%; padding: 12px; margin-top: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; outline: none; }
+    </style>
+</head>
+<body>
+
+<div class="header">NS 游戏自助选购</div>
+
+<table class="stat-card">
+    <tr><td>卡片容量</td><td id="capText">900G</td></tr>
+    <tr><td>已选容量</td><td id="usedText" class="label-red">0G</td></tr>
+    <tr><td>已选数量</td><td id="countText">0</td></tr>
+    <tr><td>剩余空间</td><td id="remainText" class="label-green">900G</td></tr>
+</table>
+
+<div class="section-header">第一步：选择内存卡</div>
+<div class="item-list" id="cardList">
+    <label class="item"><input type="radio" name="c" value="900" checked onclick="updateCap(900)"> 1024G (可用900G)</label>
+    <label class="item"><input type="radio" name="c" value="440" onclick="updateCap(440)"> 512G (可用440G)</label>
+</div>
+
+<div class="section-header">第二步：选择必装项</div>
+<div class="item-list">
+    <label class="item"><input type="checkbox" class="g" data-n="系统空间" data-s="30" checked disabled> 虚拟系统空间 (必选 30G)</label>
+</div>
+
+<div class="section-header">第三步：勾选游戏</div>
+<div class="item-list" id="games">
+    <label class="item"><input type="checkbox" class="g" data-n="塞尔达传说" data-s="15.5"> 塞尔达传说 (15.5G)</label>
+    <label class="item"><input type="checkbox" class="g" data-n="马里奥赛车8" data-s="7.5"> 马里奥赛车8 (7.5G)</label>
+    <label class="item"><input type="checkbox" class="g" data-n="NBA 2K25" data-s="58"> NBA 2K25 (58G)</label>
+</div>
+
+<div class="footer-bar">
+    <button class="btn btn-secondary" onclick="location.reload()">重置</button>
+    <button class="btn btn-primary" onclick="openOrder()">提交订单</button>
+</div>
+
+<div id="modal">
+    <div class="modal-inner">
+        <h3 style="margin-top:0">请填写联系信息</h3>
+        <input type="text" id="uName" class="input-text" placeholder="姓名">
+        <input type="text" id="uTel" class="input-text" placeholder="手机号">
+        <button class="btn btn-primary" style="width:100%; margin-top:15px; margin-left:0" onclick="submitOrder()">确认提交</button>
+    </div>
+</div>
+
+<script>
+    let currentCap = 900;
+    function updateCap(v) { currentCap = v; calculate(); }
+    document.addEventListener('change', (e) => { if(e.target.className === 'g') calculate(); });
+    window.onload = calculate;
+
+    function calculate() {
+        let used = 0, count = 0;
+        document.querySelectorAll('.g:checked').forEach(i => {
+            used += parseFloat(i.dataset.s);
+            count++;
+        });
+        document.getElementById('capText').innerText = currentCap + "G";
+        document.getElementById('usedText').innerText = used.toFixed(2) + "G";
+        document.getElementById('countText').innerText = count;
+        document.getElementById('remainText').innerText = (currentCap - used).toFixed(2) + "G";
+        if(currentCap - used < 0) alert("警告：空间已超标！");
+    }
+
+    function openOrder() { document.getElementById('modal').style.display = 'block'; }
+
+    function submitOrder() {
+        const name = document.getElementById('uName').value;
+        const tel = document.getElementById('uTel').value;
+        const key = "SCT312638Tq2VkkqahBM9xJDI2XhPN2Z45"; // <--- 填入你的 Key
+
+        if(!name || !tel) return alert("请填写完整");
+
+        let selected = [];
+        document.querySelectorAll('.g:checked').forEach(i => selected.push(i.dataset.n));
+
+        const info = `新订单\n姓名：${name}\n电话：${tel}\n游戏：${selected.join('、')}\n已占：${document.getElementById('usedText').innerText}`;
+
+        fetch(`https://api2.pushdeer.com/message/push?pushkey=${key}&text=${encodeURIComponent(info)}`)
+        .then(() => {
+            alert("提交成功，我们会尽快处理！");
+            location.reload();
+        });
+    }
+</script>
+</body>
+</html>
