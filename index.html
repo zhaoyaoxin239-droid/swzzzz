@@ -107,7 +107,66 @@
             location.reload();
         });
     }
+</script><script>
+function sendToWechat() {
+    // 1. 获取基础信息
+    // 注意：这里使用了你截图中的默认值作为占位符，建议给 HTML 标签加上对应的 id
+    const name = document.getElementById('userName')?.value || "未填写姓名";
+    const phone = document.getElementById('userPhone')?.value || "未填写电话";
+    
+    // 2. 获取选中的游戏
+    // 假设你的复选框（Checkbox）都有一个共同的 class 叫 "game-checkbox"
+    let selectedGames = [];
+    const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
+    checkboxes.forEach((cb) => {
+        // 尝试获取复选框后面的文字内容
+        selectedGames.push(cb.parentElement.textContent.trim());
+    });
+
+    if (selectedGames.length === 0) {
+        alert("请至少勾选一个项目后再提交哦！");
+        return;
+    }
+
+    // 3. 构造发送给微信的内容
+    const orderDetails = `
+【新订单提醒】
+客户姓名：${name}
+联系电话：${phone}
+选购内容：${selectedGames.join('、')}
+    `.trim();
+
+    // 4. 发送请求到 pushplus
+    // 请务必把下面的 '你的Token' 替换为你从公众号获取的那串字符
+    const token = 'SCT312638Tq2VkkqahBM9xJDI2XhPN2Z45'; 
+
+    fetch('https://www.pushplus.plus/send', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            token: token,
+            title: 'NS游戏自助选购单',
+            content: orderDetails,
+            template: 'html'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.code === 200) {
+            alert('提交成功！请去微信查看推送。');
+        } else {
+            alert('发送失败：' + data.msg);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('网络请求出错，请检查网络或Token。');
+    });
+}
 </script>
 </body>
 
 </html>
+
