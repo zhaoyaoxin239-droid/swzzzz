@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Switch 游戏选购系统</title>
     <style>
-        /* 这里的样式完全适配国内手机主流浏览器 */
         body { font-family: "PingFang SC", "Helvetica Neue", Helvetica, Arial, sans-serif; margin: 0; background: #f8f8f8; color: #333; padding-bottom: 80px; }
         .header { background: #07c160; color: white; text-align: center; padding: 15px; font-weight: 500; font-size: 16px; }
         .stat-card { background: white; margin: 0; border-bottom: 1px solid #eee; width: 100%; border-collapse: collapse; }
@@ -14,15 +13,15 @@
         .label-green { color: #07c160; font-weight: bold; }
         .section-header { padding: 12px 15px; color: #888; font-size: 13px; background: #f2f2f2; }
         .item-list { background: white; }
-        .item { display: flex; align-items: center; padding: 12px 15px; border-bottom: 1px solid #f5f5f5; }
+        .item { display: flex; align-items: center; padding: 12px 15px; border-bottom: 1px solid #f5f5f5; cursor: pointer; }
         .item input[type="checkbox"], .item input[type="radio"] { width: 20px; height: 20px; margin-right: 12px; accent-color: #07c160; }
         .footer-bar { position: fixed; bottom: 0; width: 100%; background: white; display: flex; padding: 10px; box-shadow: 0 -1px 5px rgba(0,0,0,0.05); box-sizing: border-box; }
         .btn { flex: 1; padding: 12px; border: none; border-radius: 4px; font-size: 15px; font-weight: bold; margin: 0 5px; cursor: pointer; }
         .btn-primary { background: #07c160; color: white; }
         .btn-secondary { background: #ededed; color: #07c160; }
         #modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:1000; }
-        .modal-inner { background:white; width:80%; margin:30% auto; padding:20px; border-radius:8px; }
-        .input-text { width: 100%; padding: 12px; margin-top: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; outline: none; }
+        .modal-inner { background:white; width:85%; margin:30% auto; padding:20px; border-radius:8px; }
+        .input-text { width: 100%; padding: 12px; margin-top: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; outline: none; font-size: 16px; }
     </style>
 </head>
 <body>
@@ -62,16 +61,26 @@
 <div id="modal">
     <div class="modal-inner">
         <h3 style="margin-top:0">请填写联系信息</h3>
-        <input type="text" id="uName" class="input-text" placeholder="姓名">
-        <input type="text" id="uTel" class="input-text" placeholder="手机号">
-        <button class="btn btn-primary" style="width:100%; margin-top:15px; margin-left:0" onclick="submitOrder()">确认提交</button>
+        <input type="text" id="uName" class="input-text" placeholder="您的姓名">
+        <input type="tel" id="uTel" class="input-text" placeholder="您的手机号">
+        <button id="submitBtn" class="btn btn-primary" style="width:100%; margin-top:15px; margin-left:0" onclick="submitOrder()">确认提交</button>
+        <button class="btn btn-secondary" style="width:100%; margin-top:10px; margin-left:0" onclick="closeOrder()">取消</button>
     </div>
 </div>
 
 <script>
     let currentCap = 900;
-    function updateCap(v) { currentCap = v; calculate(); }
-    document.addEventListener('change', (e) => { if(e.target.className === 'g') calculate(); });
+
+    function updateCap(v) { 
+        currentCap = v; 
+        calculate(); 
+    }
+
+    // 监听复选框变化
+    document.addEventListener('change', (e) => { 
+        if(e.target.classList.contains('g')) calculate(); 
+    });
+
     window.onload = calculate;
 
     function calculate() {
@@ -84,89 +93,54 @@
         document.getElementById('usedText').innerText = used.toFixed(2) + "G";
         document.getElementById('countText').innerText = count;
         document.getElementById('remainText').innerText = (currentCap - used).toFixed(2) + "G";
-        if(currentCap - used < 0) alert("警告：空间已超标！");
+        
+        if(currentCap - used < 0) {
+            document.getElementById('remainText').className = 'label-red';
+        } else {
+            document.getElementById('remainText').className = 'label-green';
+        }
     }
 
-    function openOrder() { document.getElementById('modal').style.display = 'block'; }
+    function openOrder() { 
+        document.getElementById('modal').style.display = 'block'; 
+    }
+
+    function closeOrder() { 
+        document.getElementById('modal').style.display = 'none'; 
+    }
 
     function submitOrder() {
         const name = document.getElementById('uName').value;
         const tel = document.getElementById('uTel').value;
-        const key = "SCT312638Tq2VkkqahBM9xJDI2XhPN2Z45"; // <--- 填入你的 Key
+        const key = "SCT312638Tq2VkkqahBM9xJDI2XhPN2Z45"; 
 
-        if(!name || !tel) return alert("请填写完整");
+        if(!name || !tel) return alert("请填写完整姓名和手机号");
 
         let selected = [];
         document.querySelectorAll('.g:checked').forEach(i => selected.push(i.dataset.n));
 
-        const info = `新订单\n姓名：${name}\n电话：${tel}\n游戏：${selected.join('、')}\n已占：${document.getElementById('usedText').innerText}`;
+        const info = `【NS新订单】\n姓名：${name}\n电话：${tel}\n游戏：${selected.join('、')}\n已占空间：${document.getElementById('usedText').innerText}`;
 
+        // 改变按钮状态防止重复提交
+        const btn = document.getElementById('submitBtn');
+        btn.innerText = "提交中...";
+        btn.disabled = true;
+
+        // 使用 URL 编码发送请求
         fetch(`https://api2.pushdeer.com/message/push?pushkey=${key}&text=${encodeURIComponent(info)}`)
-        .then(() => {
-            alert("提交成功，我们会尽快处理！");
+        .then(res => res.json())
+        .then(data => {
+            alert("提交成功！我们会尽快联系您。");
             location.reload();
+        })
+        .catch(err => {
+            alert("提交失败，请检查网络后再试");
+            btn.innerText = "确认提交";
+            btn.disabled = false;
         });
     }
-</script><script>
-function sendToWechat() {
-    // 1. 获取基础信息
-    // 注意：这里使用了你截图中的默认值作为占位符，建议给 HTML 标签加上对应的 id
-    const name = document.getElementById('userName')?.value || "未填写姓名";
-    const phone = document.getElementById('userPhone')?.value || "未填写电话";
-    
-    // 2. 获取选中的游戏
-    // 假设你的复选框（Checkbox）都有一个共同的 class 叫 "game-checkbox"
-    let selectedGames = [];
-    const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
-    checkboxes.forEach((cb) => {
-        // 尝试获取复选框后面的文字内容
-        selectedGames.push(cb.parentElement.textContent.trim());
-    });
-
-    if (selectedGames.length === 0) {
-        alert("请至少勾选一个项目后再提交哦！");
-        return;
-    }
-
-    // 3. 构造发送给微信的内容
-    const orderDetails = `
-【新订单提醒】
-客户姓名：${name}
-联系电话：${phone}
-选购内容：${selectedGames.join('、')}
-    `.trim();
-
-    // 4. 发送请求到 pushplus
-    // 请务必把下面的 '你的Token' 替换为你从公众号获取的那串字符
-    const token = 'SCT312638Tq2VkkqahBM9xJDI2XhPN2Z45'; 
-
-    fetch('https://www.pushplus.plus/send', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            token: token,
-            title: 'NS游戏自助选购单',
-            content: orderDetails,
-            template: 'html'
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.code === 200) {
-            alert('提交成功！请去微信查看推送。');
-        } else {
-            alert('发送失败：' + data.msg);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('网络请求出错，请检查网络或Token。');
-    });
-}
 </script>
 </body>
-
 </html>
+
 
